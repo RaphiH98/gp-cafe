@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#3b2314" />
+  <title>GP Cafe — Digital Punchcard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --espresso: #2c1810;
+      --roast: #4a2c1d;
+      --caramel: #c88a4b;
+      --gold: #e6b35a;
+      --cream: #faf6f0;
+      --latte: #efe5d8;
+      --text: #2c1810;
+      --muted: #7a6354;
+      --success: #2e7d4f;
+      --danger: #b83b3b;
+      --bday: #a83279;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(160deg, var(--espresso) 0%, #1a0e09 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 18px 12px 44px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 460px;
+      background: var(--cream);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--espresso), var(--roast));
+      color: var(--cream);
+      padding: 20px 20px 18px;
+      text-align: center;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(230, 179, 90, 0.35);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .staff-toggle-btn {
+      background: rgba(230, 179, 90, 0.18);
+      border: 1px solid rgba(230, 179, 90, 0.45);
+      color: var(--gold);
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .header h1 {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .header p {
+      font-size: 0.9rem;
+      color: #e6d8cb;
+      margin-top: 3px;
+    }
+
+    .setup-warning {
+      display: none;
+      background: #fff3cd;
+      color: #664d03;
+      padding: 12px 16px;
+      font-size: 0.83rem;
+      border-bottom: 1px solid #ffecb5;
+      line-height: 1.4;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 18px;
+      padding: 20px;
+      border: 1px solid rgba(74, 44, 29, 0.1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    .login-card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+      color: var(--espresso);
+    }
+
+    .login-card p {
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 13px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: var(--roast);
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbbba9;
+      font-size: 0.98rem;
+      background: white;
+    }
+
+    .customer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 18px;
+      background: var(--latte);
+      border-bottom: 1px solid rgba(74, 44, 29, 0.1);
+      gap: 10px;
+    }
+
+    .customer-info small {
+      display: block;
+      font-size: 0.73rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .customer-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--espresso);
+    }
+
+    .bar-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .mini-btn {
+      background: white;
+      border: 1px solid rgba(74, 44, 29, 0.25);
+      color: var(--roast);
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .reward-banner {
+      display: none;
+      background: linear-gradient(135deg, #2e7d4f, #1f5c38);
+      color: white;
+      padding: 13px 15px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+    }
+
+    .reward-banner.active {
+      display: block;
+    }
+
+    .reward-banner.bday {
+      background: linear-gradient(135deg, #a83279, #d34f56);
+    }
+
+    .reward-banner strong {
+      display: block;
+      font-size: 0.98rem;
+    }
+
+    .reward-banner span {
+      font-size: 0.82rem;
+      opacity: 0.94;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      margin-top: 4px;
+    }
+
+    .progress-header h2 {
+      font-size: 1rem;
+      color: var(--espresso);
+    }
+
+    .progress-count {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--caramel);
+    }
+
+    .punch-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      background: white;
+      padding: 15px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(74, 44, 29, 0.1);
+      margin-bottom: 14px;
+    }
+
+    .punch-slot {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 2px dashed #d3c2b2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      background: var(--cream);
+    }
+
+    .punch-slot.stamped {
+      background: linear-gradient(135deg, var(--roast), var(--espresso));
+      border: 2px solid var(--gold);
+      color: var(--gold);
+      box-shadow: 0 4px 10px rgba(44, 24, 16, 0.25);
+    }
+
+    .punch-slot.free-slot {
+      border: 2px dashed var(--caramel);
+      background: #fff8ec;
+      color: var(--roast);
+      font-size: 0.65rem;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .punch-slot.free-slot.unlocked {
+      background: linear-gradient(135deg, var(--gold), var(--caramel));
+      border: 2px solid var(--espresso);
+      color: var(--espresso);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.07); }
+    }
+
+    .cup-icon {
+      width: 21px;
+      height: 21px;
+      fill: currentColor;
+    }
+
+    .info-note {
+      background: #f3eadf;
+      color: var(--roast);
+      font-size: 0.82rem;
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .bday-box {
+      background: white;
+      border: 1px dashed var(--bday);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 0.82rem;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: var(--latte);
+      padding: 11px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-box strong {
+      display: block;
+      font-size: 1.2rem;
+      color: var(--espresso);
+    }
+
+    .stat-box span {
+      font-size: 0.73rem;
+      color: var(--muted);
+    }
+
+    .history-section {
+      margin-top: 18px;
+      border-top: 1px solid rgba(74, 44, 29, 0.12);
+      padding-top: 14px;
+    }
+
+    .history-section h3 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .history-list {
+      list-style: none;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 0.83rem;
+    }
+
+    .history-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(74, 44, 29, 0.06);
+      gap: 8px;
+    }
+
+    .history-list li span:last-child {
+      color: var(--muted);
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px 15px;
+      border-radius: 12px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: var(--espresso);
+      color: var(--gold);
+    }
+
+    .btn-secondary {
+      background: #e2d6c8;
+      color: var(--espresso);
+    }
+
+    /* Barista Dashboard */
+    .barista-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #23130c;
+      color: var(--cream);
+      padding: 10px 18px;
+      font-size: 0.8rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .summary-card {
+      background: white;
+      border: 1px solid rgba(74, 44, 29, 0.1);
+      padding: 10px 6px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .summary-card strong {
+      display: block;
+      font-size: 1.15rem;
+      color: var(--espresso);
+    }
+
+    .summary-card span {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .toolbar input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbbba9;
+      font-size: 0.9rem;
+    }
+
+    .toolbar button {
+      width: auto;
+      padding: 0 13px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid #cbbba9;
+      background: white;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--roast);
+      cursor: pointer;
+    }
+
+    .pill.active {
+      background: var(--espresso);
+      color: var(--gold);
+      border-color: var(--espresso);
+    }
+
+    .customer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .cust-item {
+      background: white;
+      border: 1px solid rgba(74, 44, 29, 0.12);
+      border-radius: 14px;
+      padding: 13px;
+    }
+
+    .cust-item.has-free {
+      border-color: var(--success);
+      background: #f4fbf6;
+    }
+
+    .cust-item.has-bday {
+      border-color: var(--bday);
+      background: #fdf4f9;
+    }
+
+    .cust-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .cust-title strong {
+      display: block;
+      font-size: 0.98rem;
+      color: var(--espresso);
+    }
+
+    .cust-title span {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .badges-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .stamp-badge {
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--latte);
+      color: var(--espresso);
+      white-space: nowrap;
+    }
+
+    .stamp-badge.free {
+      background: var(--success);
+      color: white;
+    }
+
+    .stamp-badge.bday {
+      background: var(--bday);
+      color: white;
+    }
+
+    .mini-dots {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .mini-dot {
+      height: 6px;
+      flex: 1;
+      border-radius: 3px;
+      background: #e5dacd;
+    }
+
+    .mini-dot.filled {
+      background: var(--caramel);
+    }
+
+    .cust-actions {
+      display: grid;
+      grid-template-columns: 1fr 0.9fr 0.9fr 1.3fr;
+      gap: 6px;
+    }
+
+    .act-btn {
+      padding: 8px 4px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .act-stamp {
+      background: var(--espresso);
+      color: var(--gold);
+    }
+
+    .act-undo {
+      background: #fff1e6;
+      color: #a85619;
+    }
+
+    .act-undo:disabled {
+      background: #f0ebe6;
+      color: #b5aba2;
+      cursor: not-allowed;
+    }
+
+    .act-qty {
+      background: var(--latte);
+      color: var(--espresso);
+    }
+
+    .act-redeem {
+      background: var(--success);
+      color: white;
+    }
+
+    .act-redeem:disabled {
+      background: #ddd5cc;
+      color: #8b8178;
+      cursor: not-allowed;
+    }
+
+    .cust-utils {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .util-btn {
+      padding: 6px 6px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #f3ede6;
+      color: var(--roast);
+    }
+
+    .util-delete {
+      background: #fbeaea;
+      color: var(--danger);
+    }
+
+    .bday-redeem-btn {
+      margin-top: 7px;
+      width: 100%;
+      padding: 9px;
+      border-radius: 9px;
+      border: none;
+      background: linear-gradient(135deg, #a83279, #d34f56);
+      color: white;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 10, 5, 0.7);
+      backdrop-filter: blur(3px);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--cream);
+      width: 100%;
+      max-width: 350px;
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .modal h3 {
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+      color: var(--espresso);
+    }
+
+    .modal p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.82rem;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1d100a;
+      color: var(--gold);
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      display: none;
+      z-index: 200;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="app-shell">
+    <header class="header">
+      <div class="top-bar">
+        <div class="brand-badge">☕ GP Rewards</div>
+        <button class="staff-toggle-btn" id="modeToggleBtn">🔒 Barista Login</button>
+      </div>
+      <h1>GP Cafe</h1>
+      <p>Buy 9 Drinks, Get Your 10th Free • Free Birthday Drink</p>
+    </header>
+
+    <div class="setup-warning" id="setupWarning">
+      ⚠️ <strong>Setup needed:</strong> Open <code>index.html</code> and paste your <code>SUPABASE_URL</code> (without <code>/rest/v1</code>) and <code>SUPABASE_ANON_KEY</code>.
+    </div>
+
+    <!-- ================= CUSTOMER MODE ================= -->
+    <div id="customerSection">
+      <section class="content" id="customerLoginCard">
+        <div class="login-card">
+          <h2>Open Your Punchcard</h2>
+          <p>Enter your phone number to view your stamps or start a new GP Cafe loyalty card.</p>
+
+          <div class="form-group">
+            <label for="phoneInput">Phone Number</label>
+            <input type="tel" id="phoneInput" placeholder="e.g. 012 345 678" />
+          </div>
+
+          <div class="form-group">
+            <label for="registerNameInput">Your Name (for new cards)</label>
+            <input type="text" id="registerNameInput" maxlength="30" placeholder="e.g. Sokha" />
+          </div>
+
+          <div class="form-group">
+            <label for="registerBdayInput">Birthday (optional — for a free birthday drink!)</label>
+            <input type="date" id="registerBdayInput" />
+          </div>
+
+          <div class="error-msg" id="customerLoginError"></div>
+          <button class="btn btn-primary" id="openCardBtn">Open My Card</button>
+        </div>
+      </section>
+
+      <div id="customerCardView" class="hidden">
+        <section class="customer-bar">
+          <div class="customer-info">
+            <div class="customer-name" id="cardNameDisplay">Valued Guest</div>
+            <small id="cardPhoneDisplay">012345678</small>
+          </div>
+          <div class="bar-btns">
+            <button class="mini-btn" id="refreshCardBtn">↻ Refresh</button>
+            <button class="mini-btn" id="editNameBtn">Edit Name</button>
+            <button class="mini-btn" id="switchCardBtn">Switch</button>
+          </div>
+        </section>
+
+        <section class="content">
+          <div class="reward-banner bday" id="bdayBanner">
+            <strong>🎂 Happy Birthday from GP Cafe!</strong>
+            <span id="bdayBannerText">Tell your barista your phone number to claim your FREE birthday drink today!</span>
+          </div>
+
+          <div class="reward-banner" id="rewardBanner">
+            <strong>🎉 Free Drink Unlocked!</strong>
+            <span id="rewardBannerText">Tell your barista your phone number to claim.</span>
+          </div>
+
+          <div class="progress-header">
+            <h2>Your Punchcard</h2>
+            <span class="progress-count" id="progressText">0 / 9 Stamps</span>
+          </div>
+
+          <div class="punch-grid" id="punchGrid"></div>
+
+          <div class="bday-box" id="customerBdayBox">
+            <span id="customerBdayText">🎂 Birthday: Not set yet</span>
+            <button class="mini-btn" id="customerSetBdayBtn">Set Birthday</button>
+          </div>
+
+          <div class="info-note">
+            ☕ Tell your GP Cafe barista your phone number when ordering to earn your stamp!
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-box">
+              <strong id="totalBoughtStat">0</strong>
+              <span>Total Drinks Bought</span>
+            </div>
+            <div class="stat-box">
+              <strong id="totalRedeemedStat">0</strong>
+              <span>Free Drinks Claimed</span>
+            </div>
+          </div>
+
+          <div class="history-section">
+            <h3>Recent Activity</h3>
+            <ul class="history-list" id="historyList"></ul>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ================= BARISTA DASHBOARD ================= -->
+    <div id="baristaSection" class="hidden">
+      <div class="barista-header-bar">
+        <span id="baristaEmailBadge">Barista: staff</span>
+        <button class="mini-btn" id="logoutBtn">Logout</button>
+      </div>
+
+      <section class="content">
+        <div class="summary-grid">
+          <div class="summary-card">
+            <strong id="statTotalCustomers">0</strong>
+            <span>Customers</span>
+          </div>
+          <div class="summary-card">
+            <strong id="statFreeReady">0</strong>
+            <span>Free Ready</span>
+          </div>
+          <div class="summary-card">
+            <strong id="statTotalSold">0</strong>
+            <span>Drinks Sold</span>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input type="search" id="searchInput" placeholder="Search name or phone..." />
+          <button class="btn btn-primary" id="addCustomerBtn">+ New</button>
+        </div>
+
+        <div class="filter-row">
+          <button class="pill active" id="filterAllBtn">All</button>
+          <button class="pill" id="filterFreeBtn">🎁 Free Drink</button>
+          <button class="pill" id="filterBdayBtn">🎂 Birthday Today</button>
+          <button class="pill" id="refreshDashBtn">↻ Refresh</button>
+        </div>
+
+        <div class="customer-list" id="baristaList"></div>
+        <p id="baristaEmpty" class="hidden" style="text-align:center; color:var(--muted); padding:20px 0; font-size:0.88rem;">
+          No matching customers found.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <!-- Barista Login Modal -->
+  <div class="modal-backdrop" id="loginModal">
+    <div class="modal">
+      <h3>Barista Login</h3>
+      <p>Sign in with your GP Cafe staff account to manage all customer cards.</p>
+      <div class="form-group">
+        <label for="loginEmailInput">Staff Email</label>
+        <input type="email" id="loginEmailInput" placeholder="barista@gpcafe.com" />
+      </div>
+      <div class="form-group">
+        <label for="loginPasswordInput">Password</label>
+        <input type="password" id="loginPasswordInput" placeholder="Enter password" />
+      </div>
+      <div class="error-msg" id="loginError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelLoginBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmLoginBtn">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Customer Name Modal -->
+  <div class="modal-backdrop" id="nameModal">
+    <div class="modal">
+      <h3>Update Name</h3>
+      <p>Change the name shown on your loyalty card.</p>
+      <div class="form-group">
+        <label for="editNameInput">Your Name</label>
+        <input type="text" id="editNameInput" maxlength="30" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelNameBtn">Cancel</button>
+        <button class="btn btn-primary" id="saveNameBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Set/Edit Birthday Modal -->
+  <div class="modal-backdrop" id="bdayModal">
+    <div class="modal">
+      <h3 id="bdayModalTitle">Set Birthday</h3>
+      <p id="bdayModalDesc">Customers receive 1 free drink on their birthday each year!</p>
+      <div class="form-group">
+        <label for="bdayInput">Birthday Date</label>
+        <input type="date" id="bdayInput" />
+      </div>
+      <div class="error-msg" id="bdayError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelBdayBtn">Cancel</button>
+        <button class="btn btn-primary" id="saveBdayBtn">Save Birthday</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barista Add Customer Modal -->
+  <div class="modal-backdrop" id="addCustModal">
+    <div class="modal">
+      <h3>New Customer Card</h3>
+      <p>Create a punchcard for a walk-in customer.</p>
+      <div class="form-group">
+        <label for="newCustPhone">Phone Number</label>
+        <input type="tel" id="newCustPhone" placeholder="e.g. 012 345 678" />
+      </div>
+      <div class="form-group">
+        <label for="newCustName">Customer Name</label>
+        <input type="text" id="newCustName" maxlength="30" placeholder="e.g. Dara" />
+      </div>
+      <div class="form-group">
+        <label for="newCustBday">Birthday (optional)</label>
+        <input type="date" id="newCustBday" />
+      </div>
+      <div class="error-msg" id="addCustError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelAddCustBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmAddCustBtn">Create Card</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-Stamp Quantity Modal -->
+  <div class="modal-backdrop" id="qtyModal">
+    <div class="modal">
+      <h3 id="qtyModalTitle">Add Multiple Stamps</h3>
+      <p>Select how many drinks the customer purchased.</p>
+      <div class="form-group">
+        <label for="qtySelect">Drinks Purchased</label>
+        <select id="qtySelect">
+          <option value="1">1 Drink</option>
+          <option value="2">2 Drinks</option>
+          <option value="3">3 Drinks</option>
+          <option value="4">4 Drinks</option>
+          <option value="5">5 Drinks</option>
+          <option value="6">6 Drinks</option>
+          <option value="10">10 Drinks</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelQtyBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmQtyBtn">Add Stamps</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer History Modal (Barista) -->
+  <div class="modal-backdrop" id="custHistoryModal">
+    <div class="modal">
+      <h3 id="custHistoryTitle">Customer Activity</h3>
+      <p>Recent stamps & redemptions</p>
+      <ul class="history-list" id="custHistoryList" style="margin-bottom: 14px;"></ul>
+      <button class="btn btn-secondary" id="closeCustHistoryBtn">Close</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // =========================================================================
+    // CONFIGURATION: Paste your Supabase Project URL and Anon/Publishable Key
+    // (Make sure SUPABASE_URL ends at .supabase.co with NO /rest/v1 at the end)
+    // =========================================================================
+    const SUPABASE_URL = "https://cqptrwocyybrqizxeiqi.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_zZd6NRfloJFAAayvF3vV3w_alSjx4ZW";
+
+    const PHONE_STORAGE_KEY = "gp_cafe_customer_phone";
+    const isConfigured =
+      SUPABASE_URL.startsWith("https://") && !SUPABASE_ANON_KEY.includes("YOUR_SUPABASE");
+
+    if (!isConfigured) {
+      document.getElementById("setupWarning").style.display = "block";
+    }
+
+    const db = isConfigured
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
+    const CUP_SVG = `
+      <svg class="cup-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 5h12a1 1 0 0 1 1 1v2h1.5A3.5 3.5 0 0 1 22 11.5 3.5 3.5 0 0 1 18.5 15H17v.5A5.5 5.5 0 0 1 11.5 21h-2A5.5 5.5 0 0 1 4 15.5V6a1 1 0 0 1 1-1zm13 5v3h1.5a1.5 1.5 0 0 0 0-3H17z"/>
+      </svg>`;
+
+    let currentCustomer = null;
+    let currentHistory = [];
+    let baristaSession = null;
+    let allCustomers = [];
+    let baristaFilter = "all"; // "all" | "free" | "bday"
+    let qtyTargetCustomer = null;
+    let bdayTargetPhone = null;
+
+    const modeToggleBtn = document.getElementById("modeToggleBtn");
+    const customerSection = document.getElementById("customerSection");
+    const baristaSection = document.getElementById("baristaSection");
+    const customerLoginCard = document.getElementById("customerLoginCard");
+    const customerCardView = document.getElementById("customerCardView");
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.style.display = "block";
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => {
+        toast.style.display = "none";
+      }, 2500);
+    }
+
+    function formatTime(iso) {
+      return new Date(iso).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function getPhnomPenhToday() {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Phnom_Penh",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(new Date());
+      const y = parts.find((p) => p.type === "year").value;
+      const m = parts.find((p) => p.type === "month").value;
+      const d = parts.find((p) => p.type === "day").value;
+      return { year: parseInt(y, 10), monthDay: `${m}-${d}` };
+    }
+
+    function isBirthdayToday(cust) {
+      if (!cust || !cust.birthday) return false;
+      const today = getPhnomPenhToday();
+      return cust.birthday.slice(5, 10) === today.monthDay;
+    }
+
+    function canRedeemBirthday(cust) {
+      if (!isBirthdayToday(cust)) return false;
+      const today = getPhnomPenhToday();
+      return (cust.last_birthday_redeemed_year || 0) < today.year;
+    }
+
+    function bdayClaimedThisYear(cust) {
+      if (!isBirthdayToday(cust)) return false;
+      const today = getPhnomPenhToday();
+      return (cust.last_birthday_redeemed_year || 0) >= today.year;
+    }
+
+    function formatBirthday(dateStr) {
+      if (!dateStr) return "Not set";
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return `${months[m - 1]} ${d}, ${y}`;
+    }
+
+    function freeDrinksCount(cust) {
+      return (cust.banked_free || 0) + (cust.stamps === 9 ? 1 : 0);
+    }
+
+    // ================= CUSTOMER LOGIC =================
+    async function loadCustomerCard(phone, name = null, birthday = null) {
+      if (!db) return showToast("Please configure Supabase keys first.");
+      const errEl = document.getElementById("customerLoginError");
+      errEl.style.display = "none";
+
+      const { data, error } = await db.rpc("get_or_create_card", {
+        p_phone: phone,
+        p_name: name
+      });
+
+      if (error) {
+        errEl.textContent = error.message;
+        errEl.style.display = "block";
+        return false;
+      }
+
+      currentCustomer = data.customer;
+      currentHistory = data.history || [];
+
+      if (birthday && !currentCustomer.birthday) {
+        const bRes = await db.rpc("set_card_birthday", {
+          p_phone: currentCustomer.phone,
+          p_birthday: birthday
+        });
+        if (!bRes.error && bRes.data) {
+          currentCustomer = bRes.data;
+        }
+      }
+
+      localStorage.setItem(PHONE_STORAGE_KEY, currentCustomer.phone);
+      renderCustomerCard();
+      return true;
+    }
+
+    function renderCustomerCard() {
+      if (!currentCustomer) {
+        customerLoginCard.classList.remove("hidden");
+        customerCardView.classList.add("hidden");
+        return;
+      }
+
+      customerLoginCard.classList.add("hidden");
+      customerCardView.classList.remove("hidden");
+
+      document.getElementById("cardNameDisplay").textContent = currentCustomer.name;
+      document.getElementById("cardPhoneDisplay").textContent = currentCustomer.phone;
+      document.getElementById("progressText").textContent = `${currentCustomer.stamps} / 9 Stamps`;
+      document.getElementById("totalBoughtStat").textContent = currentCustomer.total_bought;
+      document.getElementById("totalRedeemedStat").textContent = currentCustomer.total_redeemed;
+
+      const bdayBanner = document.getElementById("bdayBanner");
+      const bdayBannerText = document.getElementById("bdayBannerText");
+      if (canRedeemBirthday(currentCustomer)) {
+        bdayBanner.classList.add("active");
+        bdayBannerText.textContent =
+          "Tell your barista your phone number to claim your FREE birthday drink today!";
+      } else if (bdayClaimedThisYear(currentCustomer)) {
+        bdayBanner.classList.add("active");
+        bdayBannerText.textContent =
+          `🎂 Birthday drink claimed for ${getPhnomPenhToday().year}! Happy Birthday!`;
+      } else {
+        bdayBanner.classList.remove("active");
+      }
+
+      const bdayText = document.getElementById("customerBdayText");
+      const setBdayBtn = document.getElementById("customerSetBdayBtn");
+      if (currentCustomer.birthday) {
+        bdayText.textContent = `🎂 Birthday: ${formatBirthday(currentCustomer.birthday)}`;
+        setBdayBtn.classList.add("hidden");
+      } else {
+        bdayText.textContent = "🎂 Add birthday for a free drink on your special day!";
+        setBdayBtn.classList.remove("hidden");
+      }
+
+      const freeCount = freeDrinksCount(currentCustomer);
+      const banner = document.getElementById("rewardBanner");
+      if (freeCount > 0) {
+        banner.classList.add("active");
+        document.getElementById("rewardBannerText").textContent =
+          freeCount > 1
+            ? `You have ${freeCount} free drinks ready! Tell your barista your phone number.`
+            : "Tell your barista your phone number to claim your free drink.";
+      } else {
+        banner.classList.remove("active");
+      }
+
+      const grid = document.getElementById("punchGrid");
+      grid.innerHTML = "";
+      for (let i = 1; i <= 9; i++) {
+        const slot = document.createElement("div");
+        slot.className = "punch-slot" + (i <= currentCustomer.stamps ? " stamped" : "");
+        slot.innerHTML = i <= currentCustomer.stamps ? CUP_SVG : `<span>${i}</span>`;
+        grid.appendChild(slot);
+      }
+
+      const freeSlot = document.createElement("div");
+      freeSlot.className = "punch-slot free-slot" + (freeCount > 0 ? " unlocked" : "");
+      freeSlot.innerHTML = freeCount > 0 ? "★<br>FREE!" : "10th<br>FREE";
+      grid.appendChild(freeSlot);
+
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
+      if (currentHistory.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No stamps yet. Order a coffee to start!";
+        li.style.color = "var(--muted)";
+        list.appendChild(li);
+      } else {
+        currentHistory.forEach((tx) => {
+          const li = document.createElement("li");
+          const s1 = document.createElement("span");
+          const s2 = document.createElement("span");
+          s1.textContent = tx.label;
+          s2.textContent = formatTime(tx.created_at);
+          li.appendChild(s1);
+          li.appendChild(s2);
+          list.appendChild(li);
+        });
+      }
+    }
+
+    document.getElementById("openCardBtn").addEventListener("click", async () => {
+      const phone = document.getElementById("phoneInput").value;
+      const name = document.getElementById("registerNameInput").value;
+      const bday = document.getElementById("registerBdayInput").value || null;
+      await loadCustomerCard(phone, name, bday);
+    });
+
+    document.getElementById("refreshCardBtn").addEventListener("click", async () => {
+      if (currentCustomer) {
+        await loadCustomerCard(currentCustomer.phone);
+        showToast("Card refreshed");
+      }
+    });
+
+    document.getElementById("switchCardBtn").addEventListener("click", () => {
+      localStorage.removeItem(PHONE_STORAGE_KEY);
+      currentCustomer = null;
+      currentHistory = [];
+      document.getElementById("phoneInput").value = "";
+      document.getElementById("registerNameInput").value = "";
+      document.getElementById("registerBdayInput").value = "";
+      renderCustomerCard();
+    });
+
+    document.getElementById("editNameBtn").addEventListener("click", () => {
+      document.getElementById("editNameInput").value =
+        currentCustomer.name === "Valued Guest" ? "" : currentCustomer.name;
+      document.getElementById("nameModal").classList.add("open");
+    });
+
+    document.getElementById("cancelNameBtn").addEventListener("click", () => {
+      document.getElementById("nameModal").classList.remove("open");
+    });
+
+    document.getElementById("saveNameBtn").addEventListener("click", async () => {
+      const newName = document.getElementById("editNameInput").value;
+      const { data, error } = await db.rpc("update_card_name", {
+        p_phone: currentCustomer.phone,
+        p_name: newName
+      });
+      if (!error && data) {
+        currentCustomer = data;
+        renderCustomerCard();
+        showToast("Name updated");
+      }
+      document.getElementById("nameModal").classList.remove("open");
+    });
+
+    function openBdayModal(phone, existingBday, custName = null) {
+      bdayTargetPhone = phone;
+      document.getElementById("bdayInput").value = existingBday || "";
+      document.getElementById("bdayError").style.display = "none";
+      document.getElementById("bdayModalTitle").textContent = custName
+        ? `Birthday for ${custName}`
+        : "Set Your Birthday";
+      document.getElementById("bdayModalDesc").textContent = custName
+        ? "Barista: set or correct this customer's birthday."
+        : "Get 1 free drink on your birthday! (Ask a barista later if you need to change it.)";
+      document.getElementById("bdayModal").classList.add("open");
+    }
+
+    document.getElementById("customerSetBdayBtn").addEventListener("click", () => {
+      openBdayModal(currentCustomer.phone, currentCustomer.birthday);
+    });
+
+    document.getElementById("cancelBdayBtn").addEventListener("click", () => {
+      document.getElementById("bdayModal").classList.remove("open");
+    });
+
+    document.getElementById("saveBdayBtn").addEventListener("click", async () => {
+      const val = document.getElementById("bdayInput").value;
+      const errEl = document.getElementById("bdayError");
+      errEl.style.display = "none";
+
+      if (!val) {
+        errEl.textContent = "Please choose a date.";
+        errEl.style.display = "block";
+        return;
+      }
+
+      const { data, error } = await db.rpc("set_card_birthday", {
+        p_phone: bdayTargetPhone,
+        p_birthday: val
+      });
+
+      if (error) {
+        errEl.textContent = error.message;
+        errEl.style.display = "block";
+        return;
+      }
+
+      document.getElementById("bdayModal").classList.remove("open");
+      showToast("🎂 Birthday saved!");
+
+      if (baristaSession && !baristaSection.classList.contains("hidden")) {
+        await loadAllCustomers();
+      } else if (currentCustomer && data) {
+        currentCustomer = data;
+        renderCustomerCard();
+      }
+    });
+
+    // ================= BARISTA MODE =================
+    function updateModeUI() {
+      if (baristaSession) {
+        customerSection.classList.add("hidden");
+        baristaSection.classList.remove("hidden");
+        modeToggleBtn.textContent = "☕ Customer View";
+        document.getElementById("baristaEmailBadge").textContent =
+          `Barista: ${baristaSession.user.email}`;
+        loadAllCustomers();
+      } else {
+        baristaSection.classList.add("hidden");
+        customerSection.classList.remove("hidden");
+        modeToggleBtn.textContent = "🔒 Barista Login";
+      }
+    }
+
+    modeToggleBtn.addEventListener("click", () => {
+      if (baristaSession) {
+        if (baristaSection.classList.contains("hidden")) {
+          customerSection.classList.add("hidden");
+          baristaSection.classList.remove("hidden");
+          modeToggleBtn.textContent = "☕ Customer View";
+          loadAllCustomers();
+        } else {
+          baristaSection.classList.add("hidden");
+          customerSection.classList.remove("hidden");
+          modeToggleBtn.textContent = "📋 Barista Dashboard";
+        }
+      } else {
+        document.getElementById("loginError").style.display = "none";
+        document.getElementById("loginModal").classList.add("open");
+      }
+    });
+
+    document.getElementById("cancelLoginBtn").addEventListener("click", () => {
+      document.getElementById("loginModal").classList.remove("open");
+    });
+
+    document.getElementById("confirmLoginBtn").addEventListener("click", async () => {
+      if (!db) return showToast("Please configure Supabase keys first.");
+      const email = document.getElementById("loginEmailInput").value.trim();
+      const password = document.getElementById("loginPasswordInput").value;
+      const errEl = document.getElementById("loginError");
+      errEl.style.display = "none";
+
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if (error) {
+        errEl.textContent = error.message;
+        errEl.style.display = "block";
+        return;
+      }
+
+      baristaSession = data.session;
+      document.getElementById("loginModal").classList.remove("open");
+      document.getElementById("loginPasswordInput").value = "";
+      updateModeUI();
+      showToast("Welcome, Barista!");
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await db.auth.signOut();
+      baristaSession = null;
+      updateModeUI();
+      showToast("Logged out");
+    });
+
+    async function loadAllCustomers() {
+      if (!db || !baristaSession) return;
+      const { data, error } = await db
+        .from("customers")
+        .select("*")
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        showToast("Error loading customers: " + error.message);
+        return;
+      }
+
+      allCustomers = data || [];
+      renderBaristaDashboard();
+    }
+
+    function renderBaristaDashboard() {
+      const totalCust = allCustomers.length;
+      const totalFree = allCustomers.reduce((sum, c) => sum + freeDrinksCount(c), 0);
+      const totalSold = allCustomers.reduce((sum, c) => sum + (c.total_bought || 0), 0);
+
+      document.getElementById("statTotalCustomers").textContent = totalCust;
+      document.getElementById("statFreeReady").textContent = totalFree;
+      document.getElementById("statTotalSold").textContent = totalSold;
+
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const filtered = allCustomers.filter((c) => {
+        const matchesSearch =
+          c.name.toLowerCase().includes(query) || c.phone.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+        if (baristaFilter === "free") return freeDrinksCount(c) > 0;
+        if (baristaFilter === "bday") return isBirthdayToday(c);
+        return true;
+      });
+
+      const list = document.getElementById("baristaList");
+      const emptyEl = document.getElementById("baristaEmpty");
+      list.innerHTML = "";
+
+      if (filtered.length === 0) {
+        emptyEl.classList.remove("hidden");
+        return;
+      }
+      emptyEl.classList.add("hidden");
+
+      filtered.forEach((cust) => {
+        const free = freeDrinksCount(cust);
+        const bdayReady = canRedeemBirthday(cust);
+        const bdayToday = isBirthdayToday(cust);
+        const hasAnyStamps = cust.stamps > 0 || (cust.banked_free || 0) > 0;
+
+        const card = document.createElement("div");
+        card.className =
+          "cust-item" + (bdayReady ? " has-bday" : free > 0 ? " has-free" : "");
+
+        const top = document.createElement("div");
+        top.className = "cust-top";
+
+        const title = document.createElement("div");
+        title.className = "cust-title";
+        const nameEl = document.createElement("strong");
+        nameEl.textContent = cust.name;
+        const phoneEl = document.createElement("span");
+        const bdayLabel = cust.birthday ? ` • 🎂 ${formatBirthday(cust.birthday)}` : "";
+        phoneEl.textContent = `${cust.phone} • ${cust.total_bought} bought${bdayLabel}`;
+        title.appendChild(nameEl);
+        title.appendChild(phoneEl);
+
+        const badgesCol = document.createElement("div");
+        badgesCol.className = "badges-col";
+
+        const badge = document.createElement("div");
+        badge.className = "stamp-badge" + (free > 0 ? " free" : "");
+        badge.textContent = free > 0 ? `🎁 ${free} FREE (${cust.stamps}/9)` : `${cust.stamps} / 9`;
+        badgesCol.appendChild(badge);
+
+        if (bdayToday) {
+          const bBadge = document.createElement("div");
+          bBadge.className = "stamp-badge bday";
+          bBadge.textContent = bdayReady ? "🎂 BDAY TODAY!" : "🎂 Bday Claimed";
+          badgesCol.appendChild(bBadge);
+        }
+
+        top.appendChild(title);
+        top.appendChild(badgesCol);
+
+        const dots = document.createElement("div");
+        dots.className = "mini-dots";
+        for (let i = 1; i <= 9; i++) {
+          const d = document.createElement("div");
+          d.className = "mini-dot" + (i <= cust.stamps ? " filled" : "");
+          dots.appendChild(d);
+        }
+
+        const actions = document.createElement("div");
+        actions.className = "cust-actions";
+
+        const btnPlus1 = document.createElement("button");
+        btnPlus1.className = "act-btn act-stamp";
+        btnPlus1.textContent = "+1 ☕";
+        btnPlus1.onclick = () => addStamps(cust.id, 1, cust.name);
+
+        const btnUndo = document.createElement("button");
+        btnUndo.className = "act-btn act-undo";
+        btnUndo.textContent = "-1 ↩️";
+        btnUndo.title = "Undo 1 accidental stamp";
+        btnUndo.disabled = !hasAnyStamps;
+        btnUndo.onclick = () => removeStamp(cust.id, cust.name);
+
+        const btnQty = document.createElement("button");
+        btnQty.className = "act-btn act-qty";
+        btnQty.textContent = "+Qty";
+        btnQty.onclick = () => openQtyModal(cust);
+
+        const btnRedeem = document.createElement("button");
+        btnRedeem.className = "act-btn act-redeem";
+        btnRedeem.textContent = "Redeem 🎁";
+        btnRedeem.disabled = free === 0;
+        btnRedeem.onclick = () => redeemDrink(cust.id, cust.name);
+
+        actions.appendChild(btnPlus1);
+        actions.appendChild(btnUndo);
+        actions.appendChild(btnQty);
+        actions.appendChild(btnRedeem);
+
+        const utils = document.createElement("div");
+        utils.className = "cust-utils";
+
+        const btnEditBday = document.createElement("button");
+        btnEditBday.className = "util-btn";
+        btnEditBday.textContent = "🎂 Bday";
+        btnEditBday.onclick = () => openBdayModal(cust.phone, cust.birthday, cust.name);
+
+        const btnHist = document.createElement("button");
+        btnHist.className = "util-btn";
+        btnHist.textContent = "📜 History";
+        btnHist.onclick = () => viewCustomerHistory(cust);
+
+        const btnDelete = document.createElement("button");
+        btnDelete.className = "util-btn util-delete";
+        btnDelete.textContent = "🗑️ Delete";
+        btnDelete.onclick = () => deleteCustomerCard(cust.id, cust.name, cust.phone);
+
+        utils.appendChild(btnEditBday);
+        utils.appendChild(btnHist);
+        utils.appendChild(btnDelete);
+
+        card.appendChild(top);
+        card.appendChild(dots);
+        card.appendChild(actions);
+        card.appendChild(utils);
+
+        if (bdayReady) {
+          const bdayBtn = document.createElement("button");
+          bdayBtn.className = "bday-redeem-btn";
+          bdayBtn.textContent = "🎂 Redeem Free Birthday Drink";
+          bdayBtn.onclick = () => redeemBirthdayDrink(cust.id, cust.name);
+          card.appendChild(bdayBtn);
+        }
+
+        list.appendChild(card);
+      });
+    }
+
+    async function addStamps(customerId, count, name) {
+      const { error } = await db.rpc("barista_add_stamps", {
+        p_customer_id: customerId,
+        p_count: count
+      });
+      if (error) return showToast("Error: " + error.message);
+      showToast(`+${count} stamp${count > 1 ? "s" : ""} for ${name}`);
+      await loadAllCustomers();
+    }
+
+    async function removeStamp(customerId, name) {
+      if (!confirm(`Remove 1 stamp from ${name}?`)) return;
+      const { error } = await db.rpc("barista_remove_stamps", {
+        p_customer_id: customerId,
+        p_count: 1
+      });
+      if (error) return showToast("Error: " + error.message);
+      showToast(`↩️ Removed 1 stamp from ${name}`);
+      await loadAllCustomers();
+    }
+
+    async function redeemDrink(customerId, name) {
+      if (!confirm(`Confirm redeeming 1 FREE punchcard drink for ${name}?`)) return;
+      const { error } = await db.rpc("barista_redeem_free", {
+        p_customer_id: customerId
+      });
+      if (error) return showToast("Error: " + error.message);
+      showToast(`🎁 Redeemed free drink for ${name}`);
+      await loadAllCustomers();
+    }
+
+    async function redeemBirthdayDrink(customerId, name) {
+      if (!confirm(`Confirm redeeming FREE BIRTHDAY drink for ${name}?`)) return;
+      const { error } = await db.rpc("barista_redeem_birthday", {
+        p_customer_id: customerId
+      });
+      if (error) return showToast("Error: " + error.message);
+      showToast(`🎂 Birthday drink redeemed for ${name}!`);
+      await loadAllCustomers();
+    }
+
+    async function deleteCustomerCard(customerId, name, phone) {
+      if (
+        !confirm(
+          `Delete punchcard for ${name} (${phone})?\n\nAll stamps and activity history for this card will be permanently deleted.`
+        )
+      ) {
+        return;
+      }
+      const { error } = await db.rpc("barista_delete_card", {
+        p_customer_id: customerId
+      });
+      if (error) return showToast("Error: " + error.message);
+      showToast(`🗑️ Deleted card for ${name}`);
+      await loadAllCustomers();
+    }
+
+    function openQtyModal(cust) {
+      qtyTargetCustomer = cust;
+      document.getElementById("qtyModalTitle").textContent = `Stamp for ${cust.name}`;
+      document.getElementById("qtySelect").value = "2";
+      document.getElementById("qtyModal").classList.add("open");
+    }
+
+    document.getElementById("cancelQtyBtn").addEventListener("click", () => {
+      document.getElementById("qtyModal").classList.remove("open");
+    });
+
+    document.getElementById("confirmQtyBtn").addEventListener("click", async () => {
+      const count = parseInt(document.getElementById("qtySelect").value, 10) || 1;
+      document.getElementById("qtyModal").classList.remove("open");
+      if (qtyTargetCustomer) {
+        await addStamps(qtyTargetCustomer.id, count, qtyTargetCustomer.name);
+      }
+    });
+
+    async function viewCustomerHistory(cust) {
+      document.getElementById("custHistoryTitle").textContent = `${cust.name} (${cust.phone})`;
+      const list = document.getElementById("custHistoryList");
+      list.innerHTML = "<li style='color:var(--muted)'>Loading...</li>";
+      document.getElementById("custHistoryModal").classList.add("open");
+
+      const { data, error } = await db
+        .from("transactions")
+        .select("*")
+        .eq("customer_id", cust.id)
+        .order("created_at", { ascending: false })
+        .limit(15);
+
+      list.innerHTML = "";
+      if (error || !data || data.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No activity yet.";
+        li.style.color = "var(--muted)";
+        list.appendChild(li);
+        return;
+      }
+
+      data.forEach((tx) => {
+        const li = document.createElement("li");
+        const s1 = document.createElement("span");
+        const s2 = document.createElement("span");
+        s1.textContent = tx.label;
+        s2.textContent = formatTime(tx.created_at);
+        li.appendChild(s1);
+        li.appendChild(s2);
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById("closeCustHistoryBtn").addEventListener("click", () => {
+      document.getElementById("custHistoryModal").classList.remove("open");
+    });
+
+    document.getElementById("searchInput").addEventListener("input", renderBaristaDashboard);
+
+    function setActiveFilter(filter) {
+      baristaFilter = filter;
+      document.getElementById("filterAllBtn").classList.toggle("active", filter === "all");
+      document.getElementById("filterFreeBtn").classList.toggle("active", filter === "free");
+      document.getElementById("filterBdayBtn").classList.toggle("active", filter === "bday");
+      renderBaristaDashboard();
+    }
+
+    document.getElementById("filterAllBtn").addEventListener("click", () => setActiveFilter("all"));
+    document.getElementById("filterFreeBtn").addEventListener("click", () => setActiveFilter("free"));
+    document.getElementById("filterBdayBtn").addEventListener("click", () => setActiveFilter("bday"));
+
+    document.getElementById("refreshDashBtn").addEventListener("click", async () => {
+      await loadAllCustomers();
+      showToast("Dashboard refreshed");
+    });
+
+    document.getElementById("addCustomerBtn").addEventListener("click", () => {
+      document.getElementById("newCustPhone").value = "";
+      document.getElementById("newCustName").value = "";
+      document.getElementById("newCustBday").value = "";
+      document.getElementById("addCustError").style.display = "none";
+      document.getElementById("addCustModal").classList.add("open");
+    });
+
+    document.getElementById("cancelAddCustBtn").addEventListener("click", () => {
+      document.getElementById("addCustModal").classList.remove("open");
+    });
+
+    document.getElementById("confirmAddCustBtn").addEventListener("click", async () => {
+      const phone = document.getElementById("newCustPhone").value;
+      const name = document.getElementById("newCustName").value;
+      const bday = document.getElementById("newCustBday").value || null;
+      const errEl = document.getElementById("addCustError");
+      errEl.style.display = "none";
+
+      const { data, error } = await db.rpc("get_or_create_card", {
+        p_phone: phone,
+        p_name: name
+      });
+      if (error) {
+        errEl.textContent = error.message;
+        errEl.style.display = "block";
+        return;
+      }
+
+      if (bday && data && data.customer) {
+        await db.rpc("set_card_birthday", {
+          p_phone: data.customer.phone,
+          p_birthday: bday
+        });
+      }
+
+      document.getElementById("addCustModal").classList.remove("open");
+      showToast("Customer card ready!");
+      await loadAllCustomers();
+    });
+
+    // ================= INITIALIZATION =================
+    async function init() {
+      if (!db) return;
+
+      const { data } = await db.auth.getSession();
+      baristaSession = data.session;
+      updateModeUI();
+
+      const savedPhone = localStorage.getItem(PHONE_STORAGE_KEY);
+      if (savedPhone) {
+        await loadCustomerCard(savedPhone);
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && currentCustomer && !baristaSession) {
+          loadCustomerCard(currentCustomer.phone);
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
